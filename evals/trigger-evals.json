@@ -1,0 +1,22 @@
+[
+  {"query": "Add an endpoint to create users in this Spring Boot service", "should_trigger": true},
+  {"query": "This FastAPI endpoint is really slow, can you fix it?", "should_trigger": true},
+  {"query": "Add pagination to the orders handler", "should_trigger": true},
+  {"query": "Add authentication to the app", "should_trigger": true},
+  {"query": "There's a bug where invoices show the wrong total after editing, please fix", "should_trigger": true},
+  {"query": "Add a 'region' column to customers and expose it in the API", "should_trigger": true},
+  {"query": "I just cloned this repo. Implement the CSV export feature described in issue 42", "should_trigger": true},
+  {"query": "Review this PR for consistency with the rest of the codebase", "should_trigger": true},
+  {"query": "Refactor the billing module so it's easier to test", "should_trigger": true},
+  {"query": "Only admins should be able to delete projects - enforce that", "should_trigger": true},
+  {"query": "Write unit tests for the payment service", "should_trigger": true},
+  {"query": "Upgrade the ORM to the next major version and fix what breaks", "should_trigger": true},
+  {"query": "What's the difference between a B-tree and a hash index?", "should_trigger": false},
+  {"query": "Which web framework should I pick for a brand-new side project?", "should_trigger": false},
+  {"query": "Write a standalone Python script that renames all .jpeg files to .jpg", "should_trigger": false},
+  {"query": "Explain what this regex does: ^(?=.*\\d).{8,}$", "should_trigger": false},
+  {"query": "Draft a commit message for my staged changes", "should_trigger": false},
+  {"query": "Summarize this PDF report", "should_trigger": false},
+  {"query": "Create a landing page design for a coffee shop from scratch", "should_trigger": false},
+  {"query": "How do goroutines differ from OS threads?", "should_trigger": false}
+]

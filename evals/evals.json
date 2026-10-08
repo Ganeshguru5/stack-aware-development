@@ -1,0 +1,395 @@
+{
+  "skill_name": "stack-aware-development",
+  "description": "Behavioral evaluations. Each case describes a repository (set one up that matches, or use a real repository with these characteristics), a user prompt, the expected behavior ('expectations', compatible with the skill-creator eval schema), and failure conditions that fail the case outright. Grade the agent's actions (files read, commands run, diff produced) and its final report, not keywords.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "java-spring-create-user-endpoint",
+      "scenario": "Feature in an established Spring Boot service",
+      "categories": ["feature", "api", "database", "testing"],
+      "repository": {
+        "languages": ["Java 21"],
+        "frameworks": ["Spring Boot 3 (spring-boot-starter-web)"],
+        "database": "PostgreSQL",
+        "data_access": "Spring Data JPA / Hibernate",
+        "migrations": "Flyway (src/main/resources/db/migration)",
+        "build": "Maven with mvnw",
+        "testing": "JUnit 5, Mockito, AssertJ, Spring Boot Test (@WebMvcTest)",
+        "conventions": "Package-by-feature (com.example.orders.{OrderController,OrderService,OrderRepository,OrderDto}); request DTOs as records with Bean Validation; @RestControllerAdvice returning ProblemDetail; constructor injection; no Lombok"
+      },
+      "prompt": "Add an endpoint to create users.",
+      "expected_output": "A POST endpoint for users implemented in the same feature-package shape as orders, using JPA, Bean Validation, the existing ProblemDetail error handling, a Flyway migration if the table does not exist, and JUnit/Mockito tests, verified with ./mvnw.",
+      "expectations": [
+        "Identifies Java + Spring Boot + Maven + PostgreSQL + JPA from pom.xml/config before writing code",
+        "Reads the existing orders controller/service/repository and mirrors that structure for users",
+        "Uses a record request DTO with Bean Validation annotations and @Valid, consistent with existing DTOs",
+        "Routes failures through the existing @RestControllerAdvice/ProblemDetail format (e.g. 400 for validation, 409 for duplicate email)",
+        "Adds a new Flyway migration (does not edit existing ones) if a users table is needed",
+        "Hashes passwords with the configured PasswordEncoder if the user model includes a password, and does not return it in responses",
+        "Adds tests in the existing style (@WebMvcTest + Mockito and/or integration test) covering success, validation failure, and duplicate",
+        "Runs the tests with ./mvnw and reports the results"
+      ],
+      "failure_conditions": [
+        "Writes JavaScript/TypeScript, Express-style middleware, or Node concepts",
+        "Introduces Lombok, MapStruct, a new validation library, or a different persistence approach (e.g. JdbcTemplate alongside JPA) without reason",
+        "Uses field injection or a new layering scheme (e.g. use-case/gateway/adapter) for this one feature",
+        "Returns the JPA entity (including password hash) directly from the controller",
+        "Edits an existing Flyway migration",
+        "Claims tests pass without running them"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "nextjs-add-authentication-existing",
+      "scenario": "Authentication request in a Next.js app that already has partial auth",
+      "categories": ["authentication", "authorization", "security", "ui", "testing"],
+      "repository": {
+        "languages": ["TypeScript"],
+        "frameworks": ["Next.js (App Router)"],
+        "database": "PostgreSQL",
+        "data_access": "Prisma",
+        "build": "pnpm (pnpm-lock.yaml)",
+        "testing": "Vitest + Testing Library",
+        "conventions": "Auth.js (next-auth) already installed and configured in auth.ts with a GitHub provider; User/Account/Session models in schema.prisma; a /dashboard route without any auth check; zod for validation; server-only data access in lib/db.ts"
+      },
+      "prompt": "Add authentication.",
+      "expected_output": "The agent discovers the existing Auth.js setup, explains that authentication already exists, and implements the missing piece (protecting /dashboard and related server actions/route handlers server-side) using the existing library and session helper, with tests.",
+      "expectations": [
+        "Inspects package.json, auth configuration, Prisma schema, and middleware before proposing anything",
+        "States that authentication already exists via Auth.js and identifies what is actually missing (unprotected routes)",
+        "Protects /dashboard on the server (server component session check and/or middleware matcher) using the existing auth() helper",
+        "Enforces auth inside related route handlers/server actions, not only in UI components",
+        "Keeps secrets server-side; no secrets in NEXT_PUBLIC_ variables",
+        "Adds Vitest tests for the protected server logic with the session helper mocked, following existing test style",
+        "Runs typecheck, lint, and tests via pnpm scripts and reports results",
+        "Asks or clearly flags before adding new providers/credentials login, rather than guessing scope"
+      ],
+      "failure_conditions": [
+        "Installs a different auth library (e.g. Clerk, Lucia, Passport, Better Auth) or hand-rolls JWT auth alongside Auth.js",
+        "Uses npm or yarn instead of pnpm, or creates a second lockfile",
+        "Only hides UI elements client-side without server-side enforcement",
+        "Uses Pages Router APIs (getServerSideProps, pages/api) in the App Router project",
+        "Imports Prisma/database code into a 'use client' component"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "fastapi-slow-endpoint",
+      "scenario": "Performance problem in a FastAPI + async SQLAlchemy service",
+      "categories": ["performance", "database", "api", "debugging", "testing"],
+      "repository": {
+        "languages": ["Python 3.12"],
+        "frameworks": ["FastAPI", "Pydantic v2"],
+        "database": "PostgreSQL",
+        "data_access": "SQLAlchemy 2.x async (AsyncSession, select())",
+        "migrations": "Alembic",
+        "build": "uv (uv.lock)",
+        "testing": "pytest + pytest-asyncio, httpx AsyncClient, test database fixture in conftest.py",
+        "conventions": "routers/ -> services/ -> repositories/; GET /customers/{id}/orders loops over orders and accesses order.items and order.customer lazily during response serialization; no index on orders.customer_id"
+      },
+      "prompt": "This endpoint is very slow. Fix it.",
+      "expected_output": "The agent identifies the endpoint, measures or counts queries, finds the N+1 and the missing index, fixes them with selectinload/joinedload in the repository and a new Alembic migration, keeps the layering, and adds a regression test (query count or behavior).",
+      "expectations": [
+        "Locates the endpoint and traces router -> service -> repository before changing code",
+        "Gathers evidence: enables SQL echo/event counting or reasons concretely from the lazy-loading loop, and states whether conclusions are measured or inferred",
+        "Fixes N+1 with SQLAlchemy eager loading (selectinload/joinedload) in the repository layer, using 2.x select() style",
+        "Checks indexes for the filter/join column and adds an index via a new Alembic migration if missing",
+        "Considers bounding the result (pagination) only if consistent with the API contract, and flags any contract change",
+        "Keeps async correctness (no sync DB calls or blocking I/O in async endpoints)",
+        "Adds a regression test (e.g. query-count assertion or performance-sensitive behavior test) using existing fixtures",
+        "Runs pytest via uv and reports before/after evidence where possible"
+      ],
+      "failure_conditions": [
+        "Adds caching (e.g. Redis) as the first fix without addressing the query pattern",
+        "Rewrites data access with raw SQL, a different ORM, or legacy session.query() style",
+        "Makes broad unrelated refactors or changes the router/service/repository structure",
+        "Uses pip install or poetry instead of uv",
+        "Claims a speedup without any measurement or clearly-labeled reasoning"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "go-gin-pagination",
+      "scenario": "API feature in a Go service using Gin and pgx",
+      "categories": ["api", "feature", "database", "testing"],
+      "repository": {
+        "languages": ["Go 1.22"],
+        "frameworks": ["Gin"],
+        "database": "PostgreSQL",
+        "data_access": "pgx v5 with hand-written SQL in internal/store",
+        "migrations": "golang-migrate (migrations/*.sql)",
+        "build": "Go modules, Makefile (test, lint)",
+        "testing": "standard testing package, table-driven tests, httptest, testify/require",
+        "conventions": "internal/handler -> internal/service -> internal/store; responses wrapped as {\"data\": ..., \"meta\": ...}; errors via writeError(c, err) helper; /products already supports ?limit=&cursor= keyset pagination"
+      },
+      "prompt": "Add pagination to the orders endpoint.",
+      "expected_output": "Keyset pagination on /orders matching the existing /products pagination parameters, response meta, and validation, implemented through handler/service/store with pgx and table-driven tests.",
+      "expectations": [
+        "Detects Go + Gin + pgx from go.mod and source before writing code",
+        "Finds and reuses the existing /products pagination approach (parameter names, cursor format, meta shape)",
+        "Validates limit/cursor with defaults and a maximum, returning 400 via the existing writeError helper on invalid input",
+        "Implements the query with a deterministic ORDER BY (unique tiebreaker) and LIMIT in SQL via pgx, passing ctx",
+        "Checks for an index supporting the order/filter and adds a migration if needed",
+        "Keeps the {data, meta} response envelope",
+        "Adds table-driven tests (missing, invalid, zero, negative, over-max, next cursor) using httptest",
+        "Runs go test (and vet/lint per Makefile) and reports results"
+      ],
+      "failure_conditions": [
+        "Introduces GORM, sqlx, ent, or another router/framework",
+        "Uses offset pagination with different parameter names than the existing endpoint without justification",
+        "Builds SQL via string concatenation with user input",
+        "Changes the response envelope or breaks existing clients without flagging it",
+        "Ignores context propagation (uses context.Background() in the request path)"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "unknown-stack-clojure",
+      "scenario": "A stack with no dedicated reference",
+      "categories": ["feature", "api"],
+      "repository": {
+        "languages": ["Clojure"],
+        "frameworks": ["Ring + Reitit"],
+        "database": "PostgreSQL",
+        "data_access": "next.jdbc + HoneySQL",
+        "build": "deps.edn with a :test alias (Kaocha)",
+        "testing": "clojure.test via Kaocha",
+        "conventions": "src/app/routes/*.clj define route data; handlers return ring response maps via helper functions in app.http; malli schemas for request coercion"
+      },
+      "prompt": "Add an endpoint that returns a single invoice by id.",
+      "expected_output": "The agent detects Clojure/Reitit/next.jdbc from deps.edn and source, states it has no dedicated guidance for this stack, mirrors an existing route/handler/query, uses malli coercion and HoneySQL like the neighbors, adds a clojure.test test, and runs the :test alias.",
+      "expectations": [
+        "Detects the stack from deps.edn and source files rather than guessing",
+        "Explicitly notes the absence of dedicated guidance and relies on repository evidence and general principles",
+        "Mirrors an existing route + handler + query (Reitit route data, malli coercion, HoneySQL via next.jdbc)",
+        "Handles not-found and invalid id consistently with existing handlers, and checks authorization if neighbors do",
+        "Adds a test following existing clojure.test conventions and runs it via the deps.edn alias",
+        "Flags any framework behavior it relied on but could not confirm"
+      ],
+      "failure_conditions": [
+        "Introduces Java/Spring, Node, or Python idioms or files",
+        "Adds a new routing library, SQL library, or validation library",
+        "Invents build/test commands not present in deps.edn, Makefile, CI, or docs",
+        "Presents speculative framework details as certain"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "express-intermittent-500-debugging",
+      "scenario": "Debugging an intermittent failure in a Node/Express API",
+      "categories": ["debugging", "testing", "database"],
+      "repository": {
+        "languages": ["TypeScript"],
+        "frameworks": ["Express 4"],
+        "database": "MySQL",
+        "data_access": "Knex",
+        "build": "npm (package-lock.json)",
+        "testing": "Jest + Supertest",
+        "conventions": "routes/*.ts with asyncHandler() wrapper; central error middleware returning {error: {code, message}}; one route (PATCH /accounts/:id) was added without asyncHandler"
+      },
+      "prompt": "Sometimes PATCH /accounts/:id hangs or crashes the server with an unhandled rejection. Can you fix it?",
+      "expected_output": "The agent reproduces the failure (ideally a failing Supertest test), observes that the async handler lacks the project's asyncHandler wrapper on Express 4, fixes the root cause by using the existing wrapper, adds a regression test, and verifies.",
+      "expectations": [
+        "Determines the Express major version and how async errors are handled in this codebase",
+        "Reproduces the problem with a test or precise request before changing code",
+        "Identifies the missing asyncHandler wrapper (root cause) by comparing with neighboring routes",
+        "Fixes it with the existing wrapper so errors reach the central error middleware",
+        "Adds a regression test asserting the error response format instead of a hang/crash",
+        "Runs Jest via npm scripts and reports results"
+      ],
+      "failure_conditions": [
+        "Adds a process-level unhandledRejection handler or try/catch that swallows errors as the fix",
+        "Upgrades Express or installs express-async-errors without evidence it is needed",
+        "Makes random changes without reproduction or hypothesis",
+        "Changes the error response format"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "dotnet-add-required-column",
+      "scenario": "Database schema change on a populated table in ASP.NET Core + EF Core",
+      "categories": ["database", "migration", "api", "testing"],
+      "repository": {
+        "languages": ["C#"],
+        "frameworks": ["ASP.NET Core minimal APIs"],
+        "database": "SQL Server",
+        "data_access": "EF Core with IEntityTypeConfiguration classes",
+        "migrations": "EF Core migrations in Infrastructure/Migrations",
+        "build": ".NET SDK pinned by global.json; Directory.Packages.props central package management",
+        "testing": "xUnit + FluentAssertions + WebApplicationFactory with Testcontainers",
+        "conventions": "Api / Application / Infrastructure projects; endpoints grouped with MapGroup; ProblemDetails errors"
+      },
+      "prompt": "Customers must now have a required 'Region' field. Add it.",
+      "expected_output": "A safe migration for the existing populated Customers table (nullable add + backfill/default, then NOT NULL, or a default with a stated rationale), entity configuration via Fluent API, API request/response updates with compatibility notes, and tests.",
+      "expectations": [
+        "Recognizes the table already contains data and plans a migration that will not fail on existing rows",
+        "Adds the property via the existing IEntityTypeConfiguration style and generates a new migration with dotnet ef in the right project",
+        "Reviews the generated migration and adjusts for backfill/default",
+        "Updates request validation and DTOs consistently, and flags that making the field required in the API is a breaking change for clients",
+        "Adds or updates integration tests using WebApplicationFactory",
+        "Runs dotnet build and dotnet test and reports results"
+      ],
+      "failure_conditions": [
+        "Adds a non-nullable column without default/backfill to a populated table",
+        "Edits an existing applied migration",
+        "Adds a package version directly in a .csproj despite central package management",
+        "Introduces Dapper or raw ADO.NET for this change"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "kotlin-spring-code-review",
+      "scenario": "Reviewing a pull request against repository conventions",
+      "categories": ["code-review", "security", "performance"],
+      "repository": {
+        "languages": ["Kotlin"],
+        "frameworks": ["Spring Boot 3 (WebMVC)"],
+        "database": "PostgreSQL",
+        "data_access": "Spring Data JPA",
+        "build": "Gradle Kotlin DSL with libs.versions.toml",
+        "testing": "JUnit 5 + MockK + Testcontainers",
+        "conventions": "The diff under review adds Mockito tests, an Exposed-based repository for a new table, a controller endpoint returning the entity directly, and a loop calling repository.findById per item"
+      },
+      "prompt": "Review this PR.",
+      "expected_output": "A prioritized review grounded in the repository: N+1 per-item queries, entity exposure (possible data leak/serialization issues), a second data-access library (Exposed) and test mocking library (Mockito) inconsistent with JPA/MockK, plus any missing authorization or tests, each with location, impact, and fix in the codebase's style.",
+      "expectations": [
+        "Builds a stack profile and checks existing conventions before judging the diff",
+        "Flags the per-item findById loop as an N+1 with a concrete fix (batch query or fetch join)",
+        "Flags returning the JPA entity directly and the risks it creates",
+        "Flags Exposed and Mockito as redundant with the established JPA and MockK, citing the evidence",
+        "Checks authorization on the new endpoint and test coverage of failure paths",
+        "Orders findings by severity and avoids formatter-level style nitpicks"
+      ],
+      "failure_conditions": [
+        "Gives a generic review not grounded in the repository's actual stack",
+        "Recommends switching the project to a different framework or ORM",
+        "Pads the review with subjective style preferences that conflict with existing conventions"
+      ],
+      "files": []
+    },
+    {
+      "id": 9,
+      "name": "monorepo-scoped-detection",
+      "scenario": "Polyglot monorepo where root-level signals are misleading",
+      "categories": ["feature", "api", "testing"],
+      "repository": {
+        "languages": ["TypeScript", "Python"],
+        "frameworks": ["apps/web: Next.js", "services/billing: NestJS", "services/ml: FastAPI"],
+        "database": "services/billing: MySQL",
+        "data_access": "services/billing: TypeORM",
+        "build": "pnpm workspaces + Turborepo; Python service uses uv",
+        "testing": "billing: Jest; web: Vitest; ml: pytest",
+        "conventions": "Root package.json only has tooling; billing modules follow Nest module/controller/service with class-validator DTOs"
+      },
+      "prompt": "Add an endpoint to the billing service that lists invoices for a customer.",
+      "expected_output": "The agent scopes detection to services/billing (NestJS + TypeORM + MySQL + Jest), implements the endpoint as a Nest controller/service method with DTO validation and pagination per existing conventions, and runs the billing package tests through the workspace filter.",
+      "expectations": [
+        "Scopes the stack profile to services/billing rather than the repo root or other apps",
+        "Uses Nest module/controller/service patterns, class-validator DTOs, and TypeORM repositories as in neighboring modules",
+        "Applies existing auth guards and response/pagination conventions",
+        "Adds Jest tests in the billing package style",
+        "Runs tests using a pnpm/turbo filter for the billing package"
+      ],
+      "failure_conditions": [
+        "Applies Next.js, Vitest, or FastAPI conventions to the billing service",
+        "Installs dependencies at the workspace root instead of the billing package",
+        "Runs or modifies unrelated packages"
+      ],
+      "files": []
+    },
+    {
+      "id": 10,
+      "name": "proportional-trivial-change",
+      "scenario": "Trivial change should not trigger heavy ceremony",
+      "categories": ["documentation", "ui"],
+      "repository": {
+        "languages": ["TypeScript"],
+        "frameworks": ["React (Vite)"],
+        "testing": "Vitest",
+        "conventions": "Button label typo 'Sumbit' in src/components/CheckoutForm.tsx; a snapshot test covers the form"
+      },
+      "prompt": "Fix the typo in the checkout button label.",
+      "expected_output": "A one-line fix plus the corresponding snapshot/test update, with a short report; no stack profile essay, no unrelated changes.",
+      "expectations": [
+        "Makes the minimal edit in the existing file",
+        "Updates/re-runs the affected test (e.g. snapshot) using the project's test command",
+        "Keeps the final report brief"
+      ],
+      "failure_conditions": [
+        "Produces a lengthy stack analysis or plan for a one-line change",
+        "Reformats or refactors the component or unrelated files",
+        "Adds dependencies or i18n infrastructure unasked"
+      ],
+      "files": []
+    },
+    {
+      "id": 11,
+      "name": "django-not-fastapi",
+      "scenario": "Python repository where the agent might default to FastAPI idioms",
+      "categories": ["feature", "api", "authorization", "testing"],
+      "repository": {
+        "languages": ["Python 3.11"],
+        "frameworks": ["Django 5", "Django REST Framework"],
+        "database": "PostgreSQL",
+        "data_access": "Django ORM",
+        "build": "Poetry (poetry.lock)",
+        "testing": "pytest-django + factory_boy + DRF APIClient",
+        "conventions": "ModelViewSet + routers; serializers per model; permission classes per viewset; DEFAULT_PAGINATION_CLASS configured"
+      },
+      "prompt": "Add an API for managing projects; only the owner can edit or delete a project.",
+      "expected_output": "A Django model + migration, serializer, ModelViewSet registered on the router, an object-level owner permission class, queryset scoping, and pytest-django tests including another user's access being denied.",
+      "expectations": [
+        "Detects Django + DRF + Poetry, not FastAPI",
+        "Uses makemigrations for the model and reviews the migration",
+        "Implements object-level permission with a DRF permission class consistent with existing ones",
+        "Sets owner from request.user rather than accepting it from the request body",
+        "Uses the configured pagination and existing router",
+        "Adds tests for owner allowed, other user forbidden/not found, and unauthenticated",
+        "Runs tests via poetry run pytest"
+      ],
+      "failure_conditions": [
+        "Uses FastAPI, Pydantic models, APIRouter, or SQLAlchemy",
+        "Implements ownership only in the client or only at list level (IDOR on detail/update/delete)",
+        "Uses pip or uv instead of Poetry to add dependencies"
+      ],
+      "files": []
+    },
+    {
+      "id": 12,
+      "name": "composition-with-specialized-postgres-skill",
+      "scenario": "Specialized database guidance is available in the environment",
+      "categories": ["database", "performance"],
+      "repository": {
+        "languages": ["TypeScript"],
+        "frameworks": ["Fastify"],
+        "database": "PostgreSQL",
+        "data_access": "Drizzle ORM with drizzle-kit migrations",
+        "build": "pnpm",
+        "testing": "Vitest with a Testcontainers PostgreSQL fixture",
+        "conventions": "A PostgreSQL-specific skill is also installed in the agent environment"
+      },
+      "prompt": "Search on the products list is slow when filtering by name. Improve it.",
+      "expected_output": "The agent keeps the repository-level workflow (stack profile, Drizzle conventions, migration via drizzle-kit, Vitest verification) while deferring to the specialized PostgreSQL guidance for index choice (e.g. trigram/GIN vs B-tree) and query-plan analysis.",
+      "expectations": [
+        "Builds the stack profile and identifies Drizzle + drizzle-kit as the access and migration layers",
+        "Uses the available PostgreSQL-specific guidance for index type and EXPLAIN analysis",
+        "Implements the change through Drizzle schema/migrations rather than ad-hoc SQL outside the migration tool",
+        "Verifies with EXPLAIN on realistic data or clearly states the limitation, and runs Vitest",
+        "Does not claim to have invoked or installed another skill unless it actually did"
+      ],
+      "failure_conditions": [
+        "Ignores or contradicts available specialized guidance without a stated reason",
+        "Replaces Drizzle or adds a second ORM/migration tool",
+        "Adds an index without checking the query shape or existing indexes"
+      ],
+      "files": []
+    }
+  ]
+}

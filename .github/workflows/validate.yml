@@ -1,0 +1,41 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Oldest and newest Python versions the bundled scripts support.
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Skill structure, links, evals, hygiene
+        run: python scripts/validate_skill.py
+      - name: Detector unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Detector smoke run on this repository
+        run: python scripts/detect_stack.py .
+
+  spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the Agent Skills reference validator
+        run: pip install "git+https://github.com/agentskills/agentskills.git#subdirectory=skills-ref"
+      - name: Validate against the Agent Skills specification
+        # Absolute path: skills-ref derives the directory name from it, and
+        # the checkout directory is named after the repository.
+        run: skills-ref validate "$GITHUB_WORKSPACE"

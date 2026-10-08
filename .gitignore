@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Eval run outputs (keep eval definitions, not results)
+evals/results/
+evals/workspace/
+*-workspace/
+
+# Local agent settings (never publish)
+.claude/
+
+# Local environment / editor / OS
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
